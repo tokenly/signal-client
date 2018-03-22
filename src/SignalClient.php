@@ -16,7 +16,7 @@ class SignalClient
      *
      */
     /**
-     * @param string       $queue_connection The name of the signal message queue connection (rabbitmq)
+     * @param string       $queue_connection The name of the signal message queue connection (rabbitmq-signal)
      * @param string       $queue_name       The name of the signal message queue (notification)
      * @param string       $reply_queue_name The name of the signal reply queue (signal_reply)
      * @param QueueManager $queue_manager    The QueueManager instance
