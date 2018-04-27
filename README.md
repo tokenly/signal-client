@@ -36,3 +36,11 @@ public function handle($data) {
     // $data['payload']
 }
 ```
+
+You should also define:
+
+```php
+    protected $max_attempts = null;
+```
+
+in your subclass.

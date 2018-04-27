@@ -14,10 +14,10 @@ abstract class SignalConsumerJob
     use InteractsWithQueue;
 
     /**
-     * The chain name.  Must be defined in concrete classes.
-     * @var string
+     * The maximum number of attempts to process this job.  Leaving this blank processes jobs indefinitely.
+     * @var int
      */
-    protected $chain_name = '';
+    protected $max_attempts = null;
 
     /**
      * Execute the job.
@@ -46,16 +46,26 @@ abstract class SignalConsumerJob
                 return $this->handle($data);
             });
         } catch (Exception $e) {
+            if ($this->max_attempts !== null and $attempts >= $this->max_attempts) {
+                EventLog::logError("signalConsumerJob.error.permanent", $e, ['attempts' => $attempts, 'job' => get_class($this)]);
+
+                // send an error response
+                app(SignalClient::class)->sendReply($uuid, ['error' => $e->getMessage(), 'errorCode' => $e->getCode()]);
+
+                // delete the job
+                $this->delete();
+
+                return;
+            }
+
+            // log the temporary error
             EventLog::logError("signalConsumerJob.error", $e, ['attempts' => $attempts, 'job' => get_class($this)]);
 
-            // send an explicit NACK and do not requeue
-            $job->reject();
-
+            // not done yet
             throw $e;
         }
 
         // handling was successful with no exception thrown
-
         // send a reply
         app(SignalClient::class)->sendReply($uuid, $response);
 
