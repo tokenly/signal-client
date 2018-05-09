@@ -19,6 +19,12 @@ abstract class SignalConsumerJob
      */
     protected $max_attempts = null;
 
+    protected $use_backoff = false;
+    protected $backoff_delay = 5;
+    protected $backoff_power = 4.1;
+
+
+
     /**
      * Execute the job.
      *
@@ -61,8 +67,15 @@ abstract class SignalConsumerJob
             // log the temporary error
             EventLog::logError("signalConsumerJob.error", $e, ['attempts' => $attempts, 'job' => get_class($this)]);
 
-            // not done yet
-            throw $e;
+            if ($this->use_backoff == false or $this->max_attempts === null or $this->backoff_power === null or $this->backoff_delay === null) {
+                // delay without a backoff strategy
+                throw $e;
+            }
+    
+            // delay the job with a backoff strategy
+            $delay_seconds = $this->calculateBackoffDelaySeconds($attempts, $this->max_attempts, $this->backoff_delay, $this->backoff_power);
+            $job->release($delay_seconds);
+            return;
         }
 
         // handling was successful with no exception thrown
@@ -75,4 +88,19 @@ abstract class SignalConsumerJob
 
     // handle the job
     abstract public function handle($data);
+
+    // ------------------------------------------------------------------------
+    
+    protected function calculateBackoffDelaySeconds($attempts, $max_attempts, $backoff_delay, $backoff_power) {
+        if ($backoff_power === 1) {
+            $delay = $backoff_delay;
+        } else {
+            $pct = ($attempts - 1) / ($max_attempts - 1);
+            $pow = 1 + (($backoff_power - 1) * $pct);
+            $delay = pow($backoff_delay, $pow);
+            $delay = floor($delay / $backoff_delay) * $backoff_delay;
+        }
+        return $delay;
+    }
+
 }
