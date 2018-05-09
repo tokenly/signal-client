@@ -23,8 +23,6 @@ abstract class SignalConsumerJob
     protected $backoff_delay = 5;
     protected $backoff_power = 4.1;
 
-
-
     /**
      * Execute the job.
      *
@@ -55,6 +53,9 @@ abstract class SignalConsumerJob
             if ($this->max_attempts !== null and $attempts >= $this->max_attempts) {
                 EventLog::logError("signalConsumerJob.error.permanent", $e, ['attempts' => $attempts, 'job' => get_class($this)]);
 
+                // handle a permanent failure
+                $this->handlePermanentFailure($job, $data, $e);
+
                 // send an error response
                 app(SignalClient::class)->sendReply($uuid, ['error' => $e->getMessage(), 'errorCode' => $e->getCode()]);
 
@@ -71,7 +72,7 @@ abstract class SignalConsumerJob
                 // delay without a backoff strategy
                 throw $e;
             }
-    
+
             // delay the job with a backoff strategy
             $delay_seconds = $this->calculateBackoffDelaySeconds($attempts, $this->max_attempts, $this->backoff_delay, $this->backoff_power);
             $job->release($delay_seconds);
@@ -89,9 +90,18 @@ abstract class SignalConsumerJob
     // handle the job
     abstract public function handle($data);
 
+    // handle a permanent failure
+    protected function handlePermanentFailure(Job $job, $data, Exception $e)
+    {
+        // optional 
+        //   override this method in subclasses to handle permanent failures
+        //   after $this->max_attempts have been exhausted
+    }
+
     // ------------------------------------------------------------------------
-    
-    protected function calculateBackoffDelaySeconds($attempts, $max_attempts, $backoff_delay, $backoff_power) {
+
+    protected function calculateBackoffDelaySeconds($attempts, $max_attempts, $backoff_delay, $backoff_power)
+    {
         if ($backoff_power === 1) {
             $delay = $backoff_delay;
         } else {
