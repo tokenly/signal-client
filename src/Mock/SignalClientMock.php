@@ -14,6 +14,7 @@ class SignalClientMock extends SignalClient
 {
 
     public $_sent_payloads = [];
+    public $_sent_replies = [];
 
     public static function mockSignalClient()
     {
@@ -32,12 +33,32 @@ class SignalClientMock extends SignalClient
         $this->_sent_payloads = [];
     }
 
+    public function getSentReplies()
+    {
+        return $this->_sent_replies;
+    }
+    public function clearSentReplies()
+    {
+        $this->_sent_replies = [];
+    }
+
     public function send($payload)
     {
         // save the sent payload
         $this->_sent_payloads[] = $payload;
 
         return [];
+    }
+
+    public function sendReply($uuid, $response = null)
+    {
+        // save the sent reply
+        $this->_sent_replies[] = [
+            'uuid' => $uuid,
+            'response' => $response,
+        ];
+
+        return $uuid;
     }
 
 }
