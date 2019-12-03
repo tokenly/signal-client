@@ -16,7 +16,7 @@
     ],
     "require": {
         "illuminate/support": "~5.8",
-        "ramsey/uuid": "^3",
+        "ramsey/uuid": "^3.5",
         "vladimir-yuldashev/laravel-queue-rabbitmq": "dev-master",
         "php" : "^7.0"
     },
